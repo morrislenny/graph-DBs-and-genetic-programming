@@ -1,0 +1,41 @@
+# August 2nd Meeting
+**Goal:** Find linear sequences with *Uniform Mutation* and *Closed Mutation*.
+There are two other types of mutation: *alteration*, and *[alteration: uniform mutation]*.
+Alteration's are interesting when an individual does alteration with itself, the following results can look like:
+* Elitism, if the child looks like its parent.
+* Mutation, if the *reshuffling* of the child is descently close to its parent.
+* Crossover, if the *reshuflling* is nothing like its parent.
+
+We will need to decide in what cases are alterations a mutation or not, and whether they should be part of a linear sequence that needs to be collapsed.
+
+### Subgraphs
+Doing operations on the entire db would take to long, to fix this we are going to make a subgraph of the ancestory tree of the winning individuals.
+Here is how do this:
+1. In the github repo, switch to the **Additional Gene FIltering** or **Genes as Nodes** branch, and go into `gremlin_Scripts/WinnersWithPercents.groovy`.
+2. Find methods **get_ancestors_unfiltered**, or **get_ancestors_by_instructions**.
+If the db is sufficiantly big enough, use get_ancestors_by_instructions, else use, get_ancestors_unfiltered.
+3. In gremin, input `winners`, and you should get an individual back.
+  ``` gremlin> winners ==>v[758399192]```.
+4. Use the method from the groovy file you like best in the gremlin consol, and use `winners` as the argument.
+  ```Shell
+  gremlin> winners
+==>v[758399192]
+gremlin> anc = get_ancestors_by_instructions(winners)
+==>graphtraversalsource[tinkergraph[vertices:20 edges:22], standard]
+gremlin> get_ancestors_unfiltered = { ancestor_list ->
+gremlin>   inject(ancestor_list).unfold().repeat(
+gremlin>     __.inE('parent_of').subgraph('sg').outV().dedup()
+gremlin>   ).cap('sg').next().traversal()
+gremlin> }
+==>groovysh_evaluate$_run_closure1@b3004e```
+
+### Queries
+
+#### Query 1
+Finding all vertexes that have **[:alternation :uniform-mutation]** genetic operations in which they have less that two parents.
+```Shell
+gremlin> anc.V().has('genetic_operators', '[:alternation :uniform-mutation]').where(__.in('parent_of').count().is(lt(2)))```  
+#### Query 2
+Finding all vertexes that have less than two parents.
+```Shell
+gremlin> anc.V().where(__.in('parent_of').count().is(lt(2)))```
